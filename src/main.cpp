@@ -39,6 +39,7 @@
 #include <fstream>
 #include <unordered_map>
 #include <stdexcept>
+#include <cmath> 
 
 #include <unistd.h>
 #include <omp.h>
@@ -224,6 +225,7 @@ double get_whole_average(std::vector<Window> windows){
   return sum/weight;
 }
 
+
 const char* OPTIONS = "fdht:w:c:o:";
 
 void usage() {
@@ -319,7 +321,8 @@ int main(int argc, char** argv) {
     if (scfs.find(windows[i].chrom()) == scfs.end()) {
       #pragma omp critical
       {
-        std::cerr << "Chrom " << windows[i].chrom() << " not present in scfs.\n";
+        std::cerr << "Chrom " << windows[i].chrom() << " not present in coverage file.\n";
+        //If windows from BUSCO, check that no contig of named "contig_1:4-1933"
       }
       std::exit(1);
     } else {
@@ -331,8 +334,24 @@ int main(int argc, char** argv) {
   //Get the whole average
   double average = get_whole_average(windows);
 
-  //Print the whole average
-  std::cout << " The whole average through these windows is: " << average << "\n";
+//Calculate the whole standart deviation !! TO FINISH !!
+std::cout << " Calculating the standart deviation...\n";
+double sum = 0;
+double count = 0;
+  for(size_t i = 0; i < windows.size(); i++) { //Go through windows
+    //+1 to reset positions ; another +1 because don't count 1st position:
+    for(size_t j = windows[i].begin()+1; j <= windows[i].end(); j++) { 
+      sum += pow(scfs.at(windows[i].chrom())[j].second-average, 2);
+      //std::cout << scfs.at(windows[i].chrom())[j].second << "\n";
+      count += 1.;    
+    }  
+  }
+  //std::cout << count << "\n";
+  //std::cout << sum << "\n\n";
+  double stdev = sqrt(sum/count);
+
+  //Print the whole average with standart deviation
+  std::cout << "The whole average through these windows is: " << average << " +- " << stdev << "\n";
 
   // Write output file
   if(details){
